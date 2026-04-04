@@ -48,14 +48,14 @@ jobs:
         if: matrix.archive == 'tar.gz'
         run: |
           cd target/${{ matrix.target }}/release
-          tar czvf ../../../claude-code-${{ matrix.target }}.tar.gz claude-cli
+          tar czvf ../../../claude-code-${{ matrix.target }}.tar.gz claude
           cd -
       
       - name: Package (Windows)
         if: matrix.archive == 'zip'
         run: |
           cd target/${{ matrix.target }}/release
-          7z a ../../../claude-code-${{ matrix.target }}.zip claude-cli.exe
+          7z a ../../../claude-code-${{ matrix.target }}.zip claude.exe
           cd -
       
       - name: Upload artifact
