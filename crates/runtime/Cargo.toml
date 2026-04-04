@@ -32,3 +32,4 @@ url = { workspace = true }
 tokio-tungstenite = { workspace = true }
 claude-plugins = { workspace = true }
 claude-telemetry = { workspace = true }
+which = "7.0"
