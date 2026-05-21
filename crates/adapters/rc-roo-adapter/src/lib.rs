@@ -73,6 +73,45 @@ type BoolDecisionSender = Arc<std::sync::Mutex<Option<BoolDecisionHandle>>>;
 type StringDecisionSender = Arc<std::sync::Mutex<Option<StringDecisionHandle>>>;
 type MistakeLimitDecisionSender = Arc<std::sync::Mutex<Option<MistakeLimitDecisionHandle>>>;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RooPermissionKind {
+    ToolApproval,
+    ApiRetry,
+    AutoApprovalLimit,
+    MistakeLimit,
+    Followup,
+    Completion,
+}
+
+impl RooPermissionKind {
+    fn from_request(request_id: &str, request_kind: Option<&str>) -> Option<Self> {
+        if request_id.starts_with("api_retry:") {
+            return Some(Self::ApiRetry);
+        }
+        if request_id.starts_with("auto_approval_limit:") {
+            return Some(Self::AutoApprovalLimit);
+        }
+        if request_id.starts_with("mistake_limit:") {
+            return Some(Self::MistakeLimit);
+        }
+
+        let normalized = request_kind
+            .map(|kind| kind.trim().to_ascii_lowercase())
+            .unwrap_or_default();
+        match normalized.as_str() {
+            "tool" | "tool_approval" => Some(Self::ToolApproval),
+            "api_req_failed" | "api_request_failed" | "api_retry" => Some(Self::ApiRetry),
+            "auto_approval_max_req_reached" | "auto_approval_limit" => {
+                Some(Self::AutoApprovalLimit)
+            }
+            "mistake_limit_reached" | "mistake_limit" => Some(Self::MistakeLimit),
+            "followup" | "ask_followup_question" => Some(Self::Followup),
+            "completion_result" | "attempt_completion" => Some(Self::Completion),
+            _ => None,
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Provider builder — mirrors roo-cli's build_handler()
 // ---------------------------------------------------------------------------
@@ -1143,19 +1182,101 @@ impl RooInProcessAdapter {
     /// decision to its pending oneshot channel.
     pub async fn resolve_roo_approval(
         &mut self,
-        _request_id: &str,
+        request_id: &str,
         allowed: bool,
     ) -> anyhow::Result<()> {
-        if self.resolve_completion_feedback(if allowed {
-            String::new()
+        let decision = if allowed {
+            PermissionDecision::Allow
         } else {
-            "The user rejected the completion result.".to_string()
-        }) {
-            return Ok(());
+            PermissionDecision::Deny
+        };
+        self.resolve_roo_permission(request_id, decision, None, None)
+            .await
+    }
+
+    /// Resolve a pending Roo interaction with its request kind preserved.
+    ///
+    /// Roo exposes several user-interaction paths through the same unified GUI
+    /// permission event: tool approval, API retry, mistake-limit feedback,
+    /// follow-up questions, and completion acceptance/feedback. The GUI passes
+    /// the `ask`/tool kind back here so the adapter can answer the matching
+    /// native oneshot instead of treating every response as a boolean approval.
+    pub async fn resolve_roo_permission(
+        &mut self,
+        request_id: &str,
+        decision: PermissionDecision,
+        response: Option<String>,
+        request_kind: Option<&str>,
+    ) -> anyhow::Result<()> {
+        let allowed = matches!(
+            decision,
+            PermissionDecision::Allow | PermissionDecision::AllowAll
+        );
+        match RooPermissionKind::from_request(request_id, request_kind) {
+            Some(RooPermissionKind::ApiRetry) => return self.resolve_api_retry(allowed).await,
+            Some(RooPermissionKind::AutoApprovalLimit) => {
+                return self.resolve_auto_approval_limit(allowed).await;
+            }
+            Some(RooPermissionKind::MistakeLimit) => {
+                return self.resolve_mistake_limit(allowed, response).await;
+            }
+            Some(RooPermissionKind::Followup) => {
+                let text = if allowed {
+                    response.unwrap_or_default()
+                } else {
+                    response
+                        .filter(|text| !text.trim().is_empty())
+                        .unwrap_or_else(|| {
+                            "The user declined to answer the follow-up question.".to_string()
+                        })
+                };
+                if self.resolve_followup_response(text) {
+                    return Ok(());
+                }
+                debug!(allowed, "No pending Roo follow-up response in AgentLoop");
+                return Ok(());
+            }
+            Some(RooPermissionKind::Completion) => {
+                let feedback = if allowed {
+                    response.unwrap_or_default()
+                } else {
+                    response
+                        .filter(|text| !text.trim().is_empty())
+                        .unwrap_or_else(|| "The user rejected the completion result.".to_string())
+                };
+                if self.resolve_completion_feedback(feedback) {
+                    return Ok(());
+                }
+                debug!(allowed, "No pending Roo completion response in AgentLoop");
+                return Ok(());
+            }
+            Some(RooPermissionKind::ToolApproval) | None => {}
         }
-        if self.resolve_followup_response(String::new()) {
-            return Ok(());
+
+        // Compatibility fallback for callers that only know the request id and
+        // boolean decision. Prefer active text interactions first because the
+        // native loop has no separate boolean channel for those asks.
+        if request_kind.is_none() {
+            if self.resolve_completion_feedback(if allowed {
+                String::new()
+            } else {
+                "The user rejected the completion result.".to_string()
+            }) {
+                return Ok(());
+            }
+            if self.resolve_followup_response(if allowed {
+                response.unwrap_or_default()
+            } else {
+                response
+                    .filter(|text| !text.trim().is_empty())
+                    .unwrap_or_else(|| {
+                        "The user declined to answer the follow-up question.".to_string()
+                    })
+            }) {
+                return Ok(());
+            }
         }
+
         if let Some(ref handle) = self.approval_handle {
             let mut guard = match handle.lock() {
                 Ok(g) => g,
@@ -1247,7 +1368,11 @@ impl RooInProcessAdapter {
         Ok(())
     }
 
-    async fn resolve_mistake_limit(&mut self, allowed: bool) -> anyhow::Result<()> {
+    async fn resolve_mistake_limit(
+        &mut self,
+        allowed: bool,
+        feedback: Option<String>,
+    ) -> anyhow::Result<()> {
         if let Some(ref handle) = self.mistake_limit_handle {
             let mut guard = match handle.lock() {
                 Ok(g) => g,
@@ -1258,7 +1383,9 @@ impl RooInProcessAdapter {
             };
             if let Some(tx) = guard.take() {
                 let action = if allowed {
-                    MistakeLimitAction::Continue { feedback: None }
+                    MistakeLimitAction::Continue {
+                        feedback: feedback.filter(|text| !text.trim().is_empty()),
+                    }
                 } else {
                     MistakeLimitAction::Cancel
                 };
@@ -1931,9 +2058,10 @@ impl AgentAdapter for RooInProcessAdapter {
             return self.resolve_auto_approval_limit(approved).await;
         }
         if request_id.starts_with("mistake_limit:") {
-            return self.resolve_mistake_limit(approved).await;
+            return self.resolve_mistake_limit(approved, None).await;
         }
-        self.resolve_roo_approval(request_id, approved).await
+        self.resolve_roo_permission(request_id, decision, None, None)
+            .await
     }
 
     async fn stop(&mut self) -> anyhow::Result<()> {
@@ -2999,6 +3127,77 @@ mod tests {
 
         let feedback = rx.await.expect("receiver should get completion feedback");
         assert_eq!(feedback, "");
+    }
+
+    #[tokio::test]
+    async fn resolve_roo_permission_routes_followup_text_by_kind() {
+        let mut adapter = RooInProcessAdapter::new();
+
+        let (tx, rx) = tokio::sync::oneshot::channel::<String>();
+        adapter.followup_handle = Some(Arc::new(std::sync::Mutex::new(Some(tx))));
+
+        let result = adapter
+            .resolve_roo_permission(
+                "tool-followup",
+                PermissionDecision::Allow,
+                Some("Use Rust.".to_string()),
+                Some("followup"),
+            )
+            .await;
+        assert!(result.is_ok());
+
+        let response = rx.await.expect("receiver should get followup text");
+        assert_eq!(response, "Use Rust.");
+    }
+
+    #[tokio::test]
+    async fn resolve_roo_permission_routes_completion_feedback_by_kind() {
+        let mut adapter = RooInProcessAdapter::new();
+
+        let (tx, rx) = tokio::sync::oneshot::channel::<String>();
+        adapter.completion_handle = Some(Arc::new(std::sync::Mutex::new(Some(tx))));
+
+        let result = adapter
+            .resolve_roo_permission(
+                "tool-completion",
+                PermissionDecision::Deny,
+                Some("Please add tests first.".to_string()),
+                Some("completion_result"),
+            )
+            .await;
+        assert!(result.is_ok());
+
+        let feedback = rx.await.expect("receiver should get completion feedback");
+        assert_eq!(feedback, "Please add tests first.");
+    }
+
+    #[tokio::test]
+    async fn resolve_roo_permission_mistake_limit_preserves_feedback() {
+        let mut adapter = RooInProcessAdapter::new();
+
+        let (tx, rx) = tokio::sync::oneshot::channel::<MistakeLimitAction>();
+        adapter.mistake_limit_handle = Some(Arc::new(std::sync::Mutex::new(Some(tx))));
+
+        let result = adapter
+            .resolve_roo_permission(
+                "mistake_limit:t1",
+                PermissionDecision::Allow,
+                Some("Try the MCP tool again with JSON args.".to_string()),
+                Some("mistake_limit_reached"),
+            )
+            .await;
+        assert!(result.is_ok());
+
+        let action = rx.await.expect("receiver should get mistake-limit action");
+        match action {
+            MistakeLimitAction::Continue { feedback } => {
+                assert_eq!(
+                    feedback.as_deref(),
+                    Some("Try the MCP tool again with JSON args.")
+                );
+            }
+            MistakeLimitAction::Cancel => panic!("expected continue action"),
+        }
     }
 
     #[tokio::test]

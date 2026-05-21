@@ -58,7 +58,10 @@ self.addEventListener('fetch', (event) => {
   if (
     requestUrl.searchParams.has('access_token') ||
     requestUrl.searchParams.has('token') ||
-    requestUrl.searchParams.has('pairing_secret')
+    requestUrl.searchParams.has('pairing_offer') ||
+    requestUrl.searchParams.has('pairing_secret') ||
+    requestUrl.searchParams.has('offerId') ||
+    requestUrl.searchParams.has('secret')
   ) {
     event.respondWith(
       fetch(event.request, {

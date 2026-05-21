@@ -1,11 +1,11 @@
 {
   "name": "Remote Code",
   "short_name": "Remote Code",
-  "start_url": "/?mode=remote",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4efe4",
-  "theme_color": "#17181a",
-  "description": "Self-hosted remote shell for remote-code sessions, approvals, and artifacts.",
+  "background_color": "#f6f3ec",
+  "theme_color": "#0f766e",
+  "description": "Remote Code product site and mobile app download entry.",
   "icons": [
     {
       "src": "/pwa-icon-192.png",

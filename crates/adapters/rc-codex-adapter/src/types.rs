@@ -18,8 +18,8 @@ use codex_app_server_protocol::{
     CommandExecParams, DynamicToolCallOutputContentItem, DynamicToolCallResponse,
     FeedbackUploadParams, FileChangeApprovalDecision, GrantedPermissionProfile,
     McpServerElicitationAction, McpServerElicitationRequestResponse, PermissionGrantScope,
-    RequestId, SortDirection, ThreadListCwdFilter, ThreadListParams, ThreadSortKey,
-    ThreadSourceKind,
+    RequestId, RequestPermissionProfile, SortDirection, ThreadListCwdFilter, ThreadListParams,
+    ThreadSortKey, ThreadSourceKind, ToolRequestUserInputQuestion,
 };
 use codex_protocol::protocol::ReviewDecision;
 
@@ -201,9 +201,9 @@ pub(crate) enum PendingServerRequestKind {
     FileChange,
     ApplyPatch,
     ExecCommand,
-    Permissions(serde_json::Value),
+    Permissions(RequestPermissionProfile),
     McpElicitation,
-    ToolUserInput(serde_json::Value),
+    ToolUserInput(Vec<ToolRequestUserInputQuestion>),
     #[allow(dead_code)]
     DynamicTool {
         call_id: String,
@@ -225,13 +225,13 @@ impl PendingServerRequestKind {
             ServerRequest::FileChangeRequestApproval { .. } => Self::FileChange,
             ServerRequest::ApplyPatchApproval { .. } => Self::ApplyPatch,
             ServerRequest::ExecCommandApproval { .. } => Self::ExecCommand,
-            ServerRequest::PermissionsRequestApproval { params, .. } => Self::Permissions(
-                serde_json::to_value(&params.permissions).unwrap_or(serde_json::Value::Null),
-            ),
+            ServerRequest::PermissionsRequestApproval { params, .. } => {
+                Self::Permissions(params.permissions.clone())
+            }
             ServerRequest::McpServerElicitationRequest { .. } => Self::McpElicitation,
-            ServerRequest::ToolRequestUserInput { params, .. } => Self::ToolUserInput(
-                serde_json::to_value(&params.questions).unwrap_or(serde_json::Value::Null),
-            ),
+            ServerRequest::ToolRequestUserInput { params, .. } => {
+                Self::ToolUserInput(params.questions.clone())
+            }
             ServerRequest::DynamicToolCall { params, .. } => Self::DynamicTool {
                 call_id: params.call_id.clone(),
                 namespace: params.namespace.clone(),
@@ -353,7 +353,7 @@ pub(crate) fn typed_server_request_response(
         }
         PendingServerRequestKind::Permissions(requested_permissions) => serde_json::to_value(
             codex_app_server_protocol::PermissionsRequestApprovalResponse {
-                permissions: requested_permissions_to_granted_profile(requested_permissions)?,
+                permissions: requested_permissions_to_granted_profile(requested_permissions),
                 scope: if allow_all {
                     PermissionGrantScope::Session
                 } else {
@@ -375,7 +375,7 @@ pub(crate) fn typed_server_request_response(
         }
         PendingServerRequestKind::ToolUserInput(questions) => {
             serde_json::to_value(codex_app_server_protocol::ToolRequestUserInputResponse {
-                answers: default_tool_user_input_answers(questions),
+                answers: default_tool_user_input_answers(&questions),
             })?
         }
         PendingServerRequestKind::DynamicTool { .. } => {
@@ -405,45 +405,30 @@ pub(crate) fn typed_server_request_response(
 }
 
 fn requested_permissions_to_granted_profile(
-    value: serde_json::Value,
-) -> anyhow::Result<GrantedPermissionProfile> {
-    if value.is_null() {
-        return Ok(GrantedPermissionProfile::default());
+    value: RequestPermissionProfile,
+) -> GrantedPermissionProfile {
+    GrantedPermissionProfile {
+        network: value.network,
+        file_system: value.file_system,
     }
-
-    let mut granted = serde_json::Map::new();
-    if let Some(network) = value.get("network").cloned() {
-        granted.insert("network".to_owned(), network);
-    }
-    if let Some(file_system) = value.get("fileSystem").cloned() {
-        granted.insert("fileSystem".to_owned(), file_system);
-    }
-
-    serde_json::from_value(serde_json::Value::Object(granted))
-        .context("failed to convert requested permissions to granted permissions")
 }
 
 fn default_tool_user_input_answers(
-    questions: serde_json::Value,
+    questions: &[ToolRequestUserInputQuestion],
 ) -> HashMap<String, codex_app_server_protocol::ToolRequestUserInputAnswer> {
     questions
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|question| {
-            let id = question.get("id")?.as_str()?.to_owned();
+        .iter()
+        .map(|question| {
             let answers = question
-                .get("options")
-                .and_then(serde_json::Value::as_array)
+                .options
+                .as_deref()
                 .and_then(|options| options.first())
-                .and_then(|option| option.get("label"))
-                .and_then(serde_json::Value::as_str)
-                .map(|label| vec![label.to_owned()])
+                .map(|option| vec![option.label.clone()])
                 .unwrap_or_default();
-            Some((
-                id,
+            (
+                question.id.clone(),
                 codex_app_server_protocol::ToolRequestUserInputAnswer { answers },
-            ))
+            )
         })
         .collect()
 }

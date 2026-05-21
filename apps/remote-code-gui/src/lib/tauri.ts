@@ -944,8 +944,17 @@ export function onAgentStatusChanged(
 export function resolveRooPermissionRequest(
   requestId: string,
   allowed: boolean,
+  message?: string | null,
+  feedback?: string | null,
+  allow_all?: boolean,
 ): Promise<boolean> {
-  return invoke<boolean>('resolve_roo_permission_request', { requestId, allowed });
+  return invoke<boolean>('resolve_roo_permission_request', {
+    requestId,
+    allowed,
+    message: message ?? null,
+    feedback: feedback ?? null,
+    allowAll: allow_all ?? null,
+  });
 }
 
 // ── Voice / STT APIs ────────────────────────────────────────────────

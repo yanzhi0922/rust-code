@@ -5,6 +5,7 @@
 //! the unified agent protocol into [`UnifiedAgentEvent`] variants.
 
 use rc_agent_protocol::events::{AgentResult, ToolCallInfo, UnifiedAgentEvent, UsageInfo};
+use serde::Serialize;
 
 use codex_app_server_client::AppServerEvent;
 use codex_app_server_protocol::{
@@ -38,6 +39,13 @@ fn json_progress_event(
     )
 }
 
+fn to_json_value(context: &'static str, payload: impl Serialize) -> serde_json::Value {
+    serde_json::to_value(payload).unwrap_or_else(|error| {
+        tracing::warn!(context, %error, "failed to serialize Codex protocol payload");
+        serde_json::Value::Null
+    })
+}
+
 fn official_event(
     session_id: &str,
     method: &'static str,
@@ -46,7 +54,7 @@ fn official_event(
     vec![UnifiedAgentEvent::CodexAppServerNotification {
         session_id: session_id.to_owned(),
         method: method.to_owned(),
-        params: serde_json::to_value(payload).unwrap_or(serde_json::Value::Null),
+        params: to_json_value(method, payload),
     }]
 }
 
@@ -310,7 +318,7 @@ fn map_server_notification(
         // ── Tool / item lifecycle ──
         ServerNotification::ItemStarted(item) => {
             let tool_name = thread_item_kind(&item.item).to_owned();
-            let tool_input = serde_json::to_value(&item.item).unwrap_or(serde_json::Value::Null);
+            let tool_input = to_json_value("item/started", &item.item);
             let mut events = vec![UnifiedAgentEvent::ToolCallStarted {
                 session_id: session_id.to_owned(),
                 tool_name,
@@ -338,7 +346,7 @@ fn map_server_notification(
 
         ServerNotification::ItemCompleted(item) => {
             let tool_name = thread_item_kind(&item.item).to_owned();
-            let result = serde_json::to_value(&item.item).unwrap_or(serde_json::Value::Null);
+            let result = to_json_value("item/completed", &item.item);
             let mut events = vec![UnifiedAgentEvent::ToolCallCompleted {
                 session_id: session_id.to_owned(),
                 tool_name,
@@ -670,39 +678,39 @@ fn map_server_request(request: ServerRequest, session_id: &str) -> Vec<UnifiedAg
     let (tool_name, input) = match &request {
         ServerRequest::CommandExecutionRequestApproval { params, .. } => (
             "command_execution".to_owned(),
-            serde_json::to_value(params).unwrap_or(serde_json::Value::Null),
+            to_json_value("command_execution_request", params),
         ),
         ServerRequest::FileChangeRequestApproval { params, .. } => (
             "file_change".to_owned(),
-            serde_json::to_value(params).unwrap_or(serde_json::Value::Null),
+            to_json_value("file_change_request", params),
         ),
         ServerRequest::ApplyPatchApproval { params, .. } => (
             "apply_patch".to_owned(),
-            serde_json::to_value(params).unwrap_or(serde_json::Value::Null),
+            to_json_value("apply_patch_request", params),
         ),
         ServerRequest::ExecCommandApproval { params, .. } => (
             "exec_command".to_owned(),
-            serde_json::to_value(params).unwrap_or(serde_json::Value::Null),
+            to_json_value("exec_command_request", params),
         ),
         ServerRequest::PermissionsRequestApproval { params, .. } => (
             "permissions".to_owned(),
-            serde_json::to_value(params).unwrap_or(serde_json::Value::Null),
+            to_json_value("permissions_request", params),
         ),
         ServerRequest::ToolRequestUserInput { params, .. } => (
             "tool_user_input".to_owned(),
-            serde_json::to_value(params).unwrap_or(serde_json::Value::Null),
+            to_json_value("tool_user_input_request", params),
         ),
         ServerRequest::McpServerElicitationRequest { params, .. } => (
             "mcp_elicitation".to_owned(),
-            serde_json::to_value(params).unwrap_or(serde_json::Value::Null),
+            to_json_value("mcp_elicitation_request", params),
         ),
         ServerRequest::DynamicToolCall { params, .. } => (
             "dynamic_tool".to_owned(),
-            serde_json::to_value(params).unwrap_or(serde_json::Value::Null),
+            to_json_value("dynamic_tool_request", params),
         ),
         ServerRequest::ChatgptAuthTokensRefresh { params, .. } => (
             "chatgpt_auth_refresh".to_owned(),
-            serde_json::to_value(params).unwrap_or(serde_json::Value::Null),
+            to_json_value("chatgpt_auth_refresh_request", params),
         ),
     };
 

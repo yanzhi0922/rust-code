@@ -180,4 +180,77 @@ describe('PermissionModal', () => {
       });
     });
   });
+
+  it('passes Roo followup answers back as text feedback', async () => {
+    const resolvePermission = vi.fn().mockResolvedValue(undefined);
+
+    resetAppStore({
+      pendingPermission: {
+        request_id: 'roo-followup',
+        tool_name: 'ask_followup_question',
+        tool_use_id: 'tool-followup',
+        title: 'Roo 请求权限',
+        description: 'Roo 请求补充信息。',
+        input: {
+          ask: 'followup',
+          question: { question: 'Which file should Roo inspect?' },
+          requires_text_response: true,
+        },
+        blocked_path: null,
+        permission_suggestions: [],
+      },
+      resolvePermission,
+    });
+
+    render(<PermissionModal />);
+
+    expect(screen.getByText('Which file should Roo inspect?')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Roo 回复'), {
+      target: { value: 'Inspect src/main.rs first.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '允许执行' }));
+
+    await waitFor(() => {
+      expect(resolvePermission).toHaveBeenCalledWith({
+        allowed: true,
+        message: 'Inspect src/main.rs first.',
+        feedback: 'Inspect src/main.rs first.',
+      });
+    });
+  });
+
+  it('treats empty Roo completion approval as accepted', async () => {
+    const resolvePermission = vi.fn().mockResolvedValue(undefined);
+
+    resetAppStore({
+      pendingPermission: {
+        request_id: 'roo-completion',
+        tool_name: 'attempt_completion',
+        tool_use_id: 'tool-completion',
+        title: 'Roo 请求权限',
+        description: 'Roo 已给出完成结果，等待接受或反馈。',
+        input: {
+          ask: 'completion_result',
+          result: 'Done.',
+          accepts_feedback: true,
+        },
+        blocked_path: null,
+        permission_suggestions: [],
+      },
+      resolvePermission,
+    });
+
+    render(<PermissionModal />);
+
+    expect(screen.getByText('Done.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '允许执行' }));
+
+    await waitFor(() => {
+      expect(resolvePermission).toHaveBeenCalledWith({
+        allowed: true,
+        message: null,
+        feedback: null,
+      });
+    });
+  });
 });

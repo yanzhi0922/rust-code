@@ -104,8 +104,21 @@ pub(super) async fn resolve_permission_request(
             {
                 let mut adapters = state.active_roo_adapters.lock().await;
                 if let Some(adapter) = adapters.get_mut(&pending_roo.session_id) {
+                    let decision = if allow_all.unwrap_or(false) && allowed {
+                        AgentPermissionDecision::AllowAll
+                    } else if allowed {
+                        AgentPermissionDecision::Allow
+                    } else {
+                        AgentPermissionDecision::Deny
+                    };
+                    let response = feedback.clone().or_else(|| message.clone());
                     let _ = adapter
-                        .resolve_roo_approval(&pending_roo.request_id, allowed)
+                        .resolve_roo_permission(
+                            &pending_roo.request_id,
+                            decision,
+                            response,
+                            Some(&pending_roo.request_kind),
+                        )
                         .await;
                 }
             }
@@ -123,7 +136,7 @@ pub(super) async fn resolve_permission_request(
                     message: message.clone(),
                     updated_input: None,
                     permission_updates: vec![],
-                    feedback: None,
+                    feedback,
                     content_blocks: vec![],
                 },
             );
@@ -186,6 +199,9 @@ pub(super) async fn resolve_roo_permission_request(
     state: State<'_, AppState>,
     request_id: String,
     allowed: bool,
+    message: Option<String>,
+    feedback: Option<String>,
+    allow_all: Option<bool>,
 ) -> std::result::Result<bool, String> {
     let pending_roo = {
         let pending = state.pending_roo_permissions.lock().await;
@@ -200,8 +216,21 @@ pub(super) async fn resolve_roo_permission_request(
         let adapter = adapters
             .get_mut(&pending_roo.session_id)
             .ok_or_else(|| "Roo adapter not found for permission request".to_owned())?;
+        let decision = if allow_all.unwrap_or(false) && allowed {
+            AgentPermissionDecision::AllowAll
+        } else if allowed {
+            AgentPermissionDecision::Allow
+        } else {
+            AgentPermissionDecision::Deny
+        };
+        let response = feedback.clone().or_else(|| message.clone());
         adapter
-            .resolve_roo_approval(&pending_roo.request_id, allowed)
+            .resolve_roo_permission(
+                &pending_roo.request_id,
+                decision,
+                response,
+                Some(&pending_roo.request_kind),
+            )
             .await
             .map_err(|error| format!("Failed to resolve Roo permission request: {error:#}"))?;
     }
@@ -216,10 +245,10 @@ pub(super) async fn resolve_roo_permission_request(
         PermissionDecisionDto {
             request_id,
             allowed,
-            message: None,
+            message,
             updated_input: None,
             permission_updates: vec![],
-            feedback: None,
+            feedback,
             content_blocks: vec![],
         },
     );

@@ -7,8 +7,9 @@ import { ChatInput } from './components/chat/ChatInput';
 import { WorkspaceOverview } from './components/layout/WorkspaceOverview';
 import { ThemeProvider } from './components/design/ThemeProvider';
 import { AppErrorBoundary } from './components/layout/AppErrorBoundary';
-import { shouldUseRemoteMode } from './lib/runtime';
+import { hasTauriRuntime, shouldUseRemoteMode } from './lib/runtime';
 import { isMobileSync, isTouchDevice } from './lib/mobile';
+import { MarketingSite } from './marketing/MarketingSite';
 import {
   performBiometricCheck,
   initNetworkMonitoring,
@@ -21,7 +22,6 @@ import {
 } from './lib/mobile';
 import { useAppStore } from './stores/useAppStore';
 
-const RemoteApp = lazy(() => import('./remote/RemoteApp'));
 const MobileRemoteApp = lazy(() => import('./remote/MobileRemoteApp'));
 
 type MobileInitPhase = 'loading' | 'biometric' | 'ready' | 'error';
@@ -35,17 +35,6 @@ function MobileInitScreen() {
           <div role="status" className="h-5 w-5 rounded-full border-2 border-rc-border-primary border-t-rc-text-primary animate-spin" />
           <span className="text-sm font-medium">正在初始化...</span>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function RemoteLazyFallback() {
-  return (
-    <div className="flex h-screen w-screen items-center justify-center bg-rc-bg-base">
-      <div className="flex items-center gap-3 text-rc-text-secondary">
-        <div role="status" className="h-5 w-5 animate-spin rounded-full border-2 border-rc-border-primary border-t-rc-text-primary" />
-        <span className="text-sm font-medium">正在加载 Remote Code...</span>
       </div>
     </div>
   );
@@ -206,10 +195,20 @@ function LocalApp() {
 }
 
 function App() {
-  const mobile = isMobileSync() || isTouchDevice();
+  const nativeRuntime = hasTauriRuntime();
+  const nativeMobile = nativeRuntime && isMobileSync();
+  const mobileExperience = nativeRuntime && (nativeMobile || isTouchDevice());
+
+  if (!nativeRuntime) {
+    return (
+      <AppErrorBoundary>
+        <MarketingSite />
+      </AppErrorBoundary>
+    );
+  }
 
   if (shouldUseRemoteMode()) {
-    if (mobile) {
+    if (nativeMobile) {
       return (
         <AppErrorBoundary>
           <MobileGate>
@@ -220,16 +219,9 @@ function App() {
         </AppErrorBoundary>
       );
     }
-    return (
-      <AppErrorBoundary>
-        <Suspense fallback={<RemoteLazyFallback />}>
-          <RemoteApp />
-        </Suspense>
-      </AppErrorBoundary>
-    );
   }
 
-  if (mobile) {
+  if (mobileExperience) {
     return (
       <AppErrorBoundary>
         <MobileGate>

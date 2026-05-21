@@ -788,7 +788,7 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-release.ps1 -IncludeDesk
 powershell -ExecutionPolicy Bypass -File scripts\acceptance-release.ps1 -RunBaseGates -IncludeWorkspaceTests -IncludeProviderMatrix -IncludeMcpMatrix -IncludeRemoteE2E -IncludeMobilePwaE2E -IncludeTransportE2E -IncludeTailscaleE2E -RelayHostAuditReport .\relay-host-audit.txt -RequireComplete -UseProxy
 ```
 
-发布证据必须使用或等价覆盖 [release acceptance evidence template](release-acceptance-evidence.md)，并保存脱敏日志、截图、安装包 hash、Provider/MCP 结果和环境签名。`scripts\acceptance-release.ps1` 只从环境变量读取真实 Provider/MCP key，并将输出写入未跟踪的 `.release-evidence/` 目录。Relay host 边界必须在云端执行 `deploy/tencent-cloud/audit-relay-host.sh`，再把脱敏输出传给 `-RelayHostAuditReport`。公开发布必须使用 `-RequireComplete`，此时任何 `FAIL`、`SKIP` 或 `MANUAL` 都会让脚本非零退出；未启用的可选 Tailscale 路径只能以 `N/A` 关闭。
+发布证据必须使用或等价覆盖 [release acceptance evidence template](release-acceptance-evidence.md)，并保存脱敏日志、截图、安装包 hash、Provider/MCP 结果和环境签名。`scripts\acceptance-release.ps1` 只从环境变量读取真实 Provider/MCP key，并将输出写入未跟踪的 `.release-evidence/` 目录。Relay host 边界必须在云端执行 `deploy/tencent-cloud/audit-relay-host.sh`，再把脱敏输出传给 `-RelayHostAuditReport`。公开发布必须使用全量 release command 与 `-RequireComplete`，此时已请求 gate 中任何 `FAIL`、`SKIP` 或 `MANUAL` 都会让脚本非零退出；未启用的可选 Tailscale 路径只能以 `N/A` 关闭。启用 Tailscale 时，`-TailscaleEvidenceReport` 必须包含模板要求的 `PASS:` 标记，覆盖 tailnet direct、手动策略、禁用路径、失败 fallback、E2EE、approval、artifact 和 ACL/device-trust。
 
 ### 14.2 端到端验收
 

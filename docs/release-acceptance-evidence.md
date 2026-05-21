@@ -58,6 +58,26 @@ or raw provider/MCP configuration files into this document.
 | Secure deployment | Relay host contains only control plane and no source tree/provider keys/workspaces | | |
 | Release packages | Windows installer install/launch; Linux relay and Web/PWA deployable artifacts | | |
 
+### Tailscale Evidence Report
+
+When `REMOTE_CODE_ACCEPTANCE_TAILSCALE_ENABLED` is set, attach a separate
+redacted report with `-TailscaleEvidenceReport`. The acceptance script requires
+these machine-readable markers:
+
+```text
+PASS: tailnet-direct
+PASS: manual-strategy
+PASS: disabled-path
+PASS: failure-fallback
+PASS: e2ee
+PASS: approval
+PASS: artifact
+PASS: acl-device-trust
+```
+
+Do not include any `FAIL:`, `SKIP:`, or `MANUAL:` marker in the attached
+Tailscale report for a public release candidate.
+
 ## 17 Release Boundary Checklist
 
 | Boundary item | Result | Evidence |
@@ -96,8 +116,10 @@ powershell -ExecutionPolicy Bypass -File scripts\acceptance-release.ps1 `
 ```
 
 The script writes a sanitized report and logs under `.release-evidence/`.
-`-RequireComplete` makes `FAIL`, `SKIP`, and `MANUAL` statuses release
-blocking. A disabled optional Tailscale path may close as `N/A`; an enabled
-tailnet path must attach a separate redacted evidence report with
-`-TailscaleEvidenceReport`. Relay host boundary checks must come from
+`-RequireComplete` makes `FAIL`, `SKIP`, and `MANUAL` statuses blocking for
+the requested gates. Public release candidates must use the full command above
+so every release gate is requested. A disabled optional Tailscale path may close
+as `N/A`; an enabled tailnet path must attach a separate redacted evidence
+report with `-TailscaleEvidenceReport` containing the required `PASS:` markers
+above. Relay host boundary checks must come from
 `deploy/tencent-cloud/audit-relay-host.sh` running on the relay host.

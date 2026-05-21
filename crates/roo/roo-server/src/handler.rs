@@ -848,7 +848,11 @@ impl Handler {
 
         // Build the API provider from the app's provider settings and inject
         // it into the lifecycle so that `start()` can spawn the AgentLoop.
-        let lifecycle_arc = self.task_manager.get_task(&task_id).unwrap();
+        let lifecycle_arc = self.task_manager.get_task(&task_id).ok_or_else(|| {
+            ServerError::Internal(format!(
+                "task `{task_id}` missing immediately after creation"
+            ))
+        })?;
         {
             let app = self.app.read().await;
             let settings = app.provider_settings();

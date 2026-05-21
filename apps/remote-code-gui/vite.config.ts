@@ -21,15 +21,33 @@ function resolveBuildId(command: 'build' | 'serve'): string {
     return envBuildId.slice(0, 12);
   }
 
+  const runGit = (commandText: string): string | null => {
+    try {
+      return execSync(commandText, {
+        cwd: __dirname,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      })
+        .toString()
+        .trim();
+    } catch {
+      return null;
+    }
+  };
+
+  const gitBuildId = runGit('git rev-parse --short=12 HEAD');
+  if (gitBuildId) {
+    const dirty = runGit('git status --porcelain -- .');
+    if (dirty) {
+      const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+      return `${gitBuildId}-${timestamp}`;
+    }
+    return gitBuildId;
+  }
+
   try {
-    return execSync('git rev-parse --short=12 HEAD', {
-      cwd: __dirname,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    })
-      .toString()
-      .trim();
-  } catch {
     return new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+  } catch {
+    return 'local';
   }
 }
 

@@ -92,6 +92,7 @@ pub(crate) struct CodexPendingPermission {
 pub(crate) struct RooPendingPermission {
     pub(crate) session_id: String,
     pub(crate) request_id: String,
+    pub(crate) request_kind: String,
 }
 
 #[derive(Debug, Clone)]

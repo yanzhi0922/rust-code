@@ -259,6 +259,9 @@ async function secureStoreRemove(key: string): Promise<void> {
 }
 
 export function shouldUseRemoteMode(): boolean {
+  if (!hasTauriRuntime()) {
+    return false;
+  }
   const params = new URLSearchParams(window.location.search);
   const mode = params.get('mode');
   if (mode === 'local') {
@@ -267,10 +270,7 @@ export function shouldUseRemoteMode(): boolean {
   if (mode === 'remote') {
     return true;
   }
-  if (hasTauriRuntime()) {
-    return false;
-  }
-  return resolveRemoteBaseUrl() !== null;
+  return false;
 }
 
 function normalizeBaseUrl(raw: string): string | null {

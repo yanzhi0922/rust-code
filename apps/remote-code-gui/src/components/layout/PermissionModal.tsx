@@ -141,6 +141,13 @@ export function PermissionModal() {
   const isCodexMcpElicitation = pendingPermission?.tool_name === 'mcp_elicitation';
   const isCodexDynamicTool = pendingPermission?.tool_name === 'dynamic_tool';
   const inputRecord = useMemo(() => asRecord(pendingPermission?.input), [pendingPermission?.input]);
+  const rooAsk = stringField(inputRecord, 'ask');
+  const isRooFollowup = pendingPermission?.tool_name === 'ask_followup_question' || rooAsk === 'followup';
+  const isRooCompletion = pendingPermission?.tool_name === 'attempt_completion' || rooAsk === 'completion_result';
+  const isRooMistakeLimit =
+    pendingPermission?.tool_name === 'mistake_limit_reached' || rooAsk === 'mistake_limit_reached';
+  const isRooTextInteraction = isRooFollowup || isRooCompletion || isRooMistakeLimit;
+  const rooQuestionRecord = useMemo(() => asRecord(inputRecord?.question), [inputRecord]);
   const allowedPrompts = useMemo(
     () => extractAllowedPrompts(pendingPermission?.input),
     [pendingPermission?.input],
@@ -173,6 +180,74 @@ export function PermissionModal() {
   if (!pendingPermission) return null;
 
   const trimmedFeedback = feedback.trim();
+  const rooQuestionText = stringField(rooQuestionRecord, 'question') ?? stringField(inputRecord, 'question');
+  const rooCompletionText = stringField(inputRecord, 'result');
+  const rooResponseLabel = isRooFollowup
+    ? 'Roo 回复'
+    : isRooCompletion
+    ? 'Roo 完成反馈'
+    : 'Roo 继续反馈';
+
+  function denyPermission() {
+    if (isCodexMcpElicitation) {
+      void resolvePermission({
+        allowed: false,
+        codex_response: { action: 'decline', content: null, _meta: null },
+      });
+      return;
+    }
+    if (isExitPlanMode || isRooTextInteraction) {
+      void resolvePermission({
+        allowed: false,
+        message: trimmedFeedback || null,
+        feedback: trimmedFeedback || null,
+      });
+      return;
+    }
+    void resolvePermission({ allowed: false });
+  }
+
+  function allowPermission() {
+    if (isCodexToolUserInput || isCodexMcpElicitation) {
+      void resolvePermission({
+        allowed: true,
+        codex_response: parseJsonOrText(codexJsonResponse),
+      });
+      return;
+    }
+    if (isCodexDynamicTool) {
+      void resolvePermission({
+        allowed: true,
+        codex_response: {
+          contentItems: [
+            {
+              type: 'inputText',
+              text: codexTextResponse.trim() || 'Approved by user.',
+            },
+          ],
+          success: true,
+        },
+      });
+      return;
+    }
+    if (isRooTextInteraction) {
+      void resolvePermission({
+        allowed: true,
+        message: trimmedFeedback || null,
+        feedback: trimmedFeedback || null,
+      });
+      return;
+    }
+    void resolvePermission(
+      isExitPlanMode
+        ? {
+            allowed: true,
+            feedback: trimmedFeedback || null,
+            permission_updates: buildExitPlanPermissionUpdates(allowedPrompts),
+          }
+        : { allowed: true },
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-[2px]">
@@ -285,6 +360,34 @@ export function PermissionModal() {
               />
             </div>
           )}
+          {isRooFollowup && rooQuestionText && (
+            <div className="rounded-2xl border border-[#e3dbcf] bg-[#fbfaf7] p-4 text-sm leading-6 text-slate-700">
+              {rooQuestionText}
+            </div>
+          )}
+          {isRooCompletion && rooCompletionText && (
+            <pre className="max-h-64 overflow-auto rounded-2xl bg-[#f7f5ef] p-4 text-sm leading-6 text-slate-700">
+              {rooCompletionText}
+            </pre>
+          )}
+          {isRooTextInteraction && (
+            <div>
+              <label htmlFor="roo-permission-feedback" className="text-sm font-medium text-slate-700">
+                {rooResponseLabel}
+              </label>
+              <textarea
+                id="roo-permission-feedback"
+                value={feedback}
+                onChange={(event) => setFeedback(event.target.value)}
+                placeholder={
+                  isRooCompletion
+                    ? '留空表示接受结果；填写内容会作为反馈继续执行。'
+                    : '填写要返回给 Roo 的补充信息。'
+                }
+                className="mt-2 min-h-28 w-full rounded-2xl border border-[#e3dbcf] bg-white px-4 py-3 text-sm leading-6 text-slate-700 outline-none transition focus:border-slate-400"
+              />
+            </div>
+          )}
           {pendingPermission.blocked_path && (
             <div>
               <div className="text-sm font-medium text-slate-700">目标路径</div>
@@ -332,60 +435,13 @@ export function PermissionModal() {
 
         <div className="flex justify-end gap-3 border-t border-[#efe8dd] bg-[#fbfaf7] px-6 py-4">
           <button
-            onClick={() => {
-              void resolvePermission(
-                isCodexMcpElicitation
-                  ? {
-                      allowed: false,
-                      codex_response: { action: 'decline', content: null, _meta: null },
-                    }
-                  : isExitPlanMode
-                  ? {
-                      allowed: false,
-                      message: trimmedFeedback || null,
-                      feedback: trimmedFeedback || null,
-                    }
-                  : { allowed: false },
-              );
-            }}
+            onClick={denyPermission}
             className="rounded-2xl border border-[#e3dbcf] px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-white"
           >
             拒绝
           </button>
           <button
-            onClick={() => {
-              if (isCodexToolUserInput || isCodexMcpElicitation) {
-                void resolvePermission({
-                  allowed: true,
-                  codex_response: parseJsonOrText(codexJsonResponse),
-                });
-                return;
-              }
-              if (isCodexDynamicTool) {
-                void resolvePermission({
-                  allowed: true,
-                  codex_response: {
-                    contentItems: [
-                      {
-                        type: 'inputText',
-                        text: codexTextResponse.trim() || 'Approved by user.',
-                      },
-                    ],
-                    success: true,
-                  },
-                });
-                return;
-              }
-              void resolvePermission(
-                isExitPlanMode
-                  ? {
-                      allowed: true,
-                      feedback: trimmedFeedback || null,
-                      permission_updates: buildExitPlanPermissionUpdates(allowedPrompts),
-                    }
-                  : { allowed: true },
-              );
-            }}
+            onClick={allowPermission}
             className="rounded-2xl bg-[#17181a] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2b2d31]"
           >
             允许执行

@@ -67,6 +67,16 @@ function Add-Result(
     }) | Out-Null
 }
 
+function Add-UnrequestedSkip(
+    [string]$Area,
+    [string]$Item,
+    [string]$Notes
+) {
+    if (-not $RequireComplete) {
+        Add-Result $Area $Item "SKIP" "" $Notes
+    }
+}
+
 function Sanitize-Text([string]$Text) {
     if ($null -eq $Text) {
         return ""
@@ -122,6 +132,32 @@ function Env-Present([string[]]$Names) {
         }
     }
     return $false
+}
+
+function Assert-TailscaleEvidenceReport([string]$Content) {
+    if ([string]::IsNullOrWhiteSpace($Content)) {
+        throw "Tailscale evidence report is empty"
+    }
+    if ($Content -match "(?im)^\s*(FAIL|SKIP|MANUAL)\s*:") {
+        throw "Tailscale evidence report contains blocking evidence markers"
+    }
+
+    $requiredMarkers = @(
+        "tailnet-direct",
+        "manual-strategy",
+        "disabled-path",
+        "failure-fallback",
+        "e2ee",
+        "approval",
+        "artifact",
+        "acl-device-trust"
+    )
+    foreach ($marker in $requiredMarkers) {
+        $pattern = "(?im)^\s*PASS:\s*" + [regex]::Escape($marker) + "\b"
+        if ($Content -notmatch $pattern) {
+            throw "Tailscale evidence report missing required marker: PASS: $marker"
+        }
+    }
 }
 
 function RemoteCodeExe {
@@ -308,7 +344,7 @@ if ($RunBaseGates) {
         powershell @args
     }
 } else {
-    Add-Result "14.1" "base-gates" "SKIP" "" "pass -RunBaseGates to execute local release gates"
+    Add-UnrequestedSkip "14.1" "base-gates" "pass -RunBaseGates to execute local release gates"
 }
 
 if ($IncludeProviderMatrix) {
@@ -327,7 +363,7 @@ if ($IncludeProviderMatrix) {
         }
     }
 } else {
-    Add-Result "Provider" "matrix" "SKIP" "" "pass -IncludeProviderMatrix with provider keys in environment"
+    Add-UnrequestedSkip "Provider" "matrix" "pass -IncludeProviderMatrix with provider keys in environment"
 }
 
 if ($IncludeMcpMatrix) {
@@ -341,7 +377,7 @@ if ($IncludeMcpMatrix) {
         Run-LoggedStep "MCP" "$server-call" { Invoke-McpToolCall $server $mcpConfig }
     }
 } else {
-    Add-Result "MCP" "matrix" "SKIP" "" "pass -IncludeMcpMatrix to start and call MCP servers"
+    Add-UnrequestedSkip "MCP" "matrix" "pass -IncludeMcpMatrix to start and call MCP servers"
 }
 
 if ($IncludeRemoteE2E) {
@@ -359,7 +395,7 @@ if ($IncludeRemoteE2E) {
         }
     }
 } else {
-    Add-Result "Remote E2E" "relay-runner-control-plane" "SKIP" "" "pass -IncludeRemoteE2E after provisioning relay and runner"
+    Add-UnrequestedSkip "Remote E2E" "relay-runner-control-plane" "pass -IncludeRemoteE2E after provisioning relay and runner"
 }
 
 if ($IncludeMobilePwaE2E) {
@@ -373,7 +409,7 @@ if ($IncludeMobilePwaE2E) {
         }
     }
 } else {
-    Add-Result "Mobile/PWA" "pairing-prompt-approval-artifact" "SKIP" "" "pass -IncludeMobilePwaE2E after preparing real devices"
+    Add-UnrequestedSkip "Mobile/PWA" "pairing-prompt-approval-artifact" "pass -IncludeMobilePwaE2E after preparing real devices"
 }
 
 if ($IncludeTransportE2E) {
@@ -401,7 +437,7 @@ if ($IncludeTransportE2E) {
         }
     }
 } else {
-    Add-Result "Transport" "relay-direct-outbound-quic" "SKIP" "" "pass -IncludeTransportE2E after provisioning transport testbed"
+    Add-UnrequestedSkip "Transport" "relay-direct-outbound-quic" "pass -IncludeTransportE2E after provisioning transport testbed"
 }
 
 if ($IncludeTailscaleE2E) {
@@ -412,9 +448,7 @@ if ($IncludeTailscaleE2E) {
                 $resolved = Resolve-Path -LiteralPath $TailscaleEvidenceReport
                 $content = Get-Content -LiteralPath $resolved.Path -Raw
                 Write-Output $content
-                if ($content -match "(?m)^FAIL:") {
-                    throw "Tailscale evidence report contains failures"
-                }
+                Assert-TailscaleEvidenceReport $content
             }
         } else {
             Add-Result "Tailscale" "tailnet-direct-fallback" "MANUAL" "" "Tailscale is enabled; attach two-device tailnet evidence with -TailscaleEvidenceReport"
@@ -423,7 +457,7 @@ if ($IncludeTailscaleE2E) {
         Add-Result "Tailscale" "tailnet-direct-fallback" "N/A" "" "Tailscale optional path is not enabled for this release candidate; standard relay/direct/outbound/QUIC gates cover the required remote chain"
     }
 } else {
-    Add-Result "Tailscale" "tailnet-direct-fallback" "SKIP" "" "pass -IncludeTailscaleE2E in a prepared tailnet"
+    Add-UnrequestedSkip "Tailscale" "tailnet-direct-fallback" "pass -IncludeTailscaleE2E in a prepared tailnet"
 }
 
 if (-not [string]::IsNullOrWhiteSpace($RelayHostAuditReport)) {
@@ -439,7 +473,7 @@ if (-not [string]::IsNullOrWhiteSpace($RelayHostAuditReport)) {
         }
     }
 } else {
-    Add-Result "Secure deployment" "relay-host-audit" "SKIP" "" "run deploy/tencent-cloud/audit-relay-host.sh on the relay host and pass -RelayHostAuditReport <path>"
+    Add-UnrequestedSkip "Secure deployment" "relay-host-audit" "run deploy/tencent-cloud/audit-relay-host.sh on the relay host and pass -RelayHostAuditReport <path>"
 }
 
 $lines = New-Object System.Collections.Generic.List[string]
@@ -475,6 +509,9 @@ Write-Host "Acceptance evidence written to $ReportPath"
 $blockingStatuses = @("FAIL")
 if ($RequireComplete) {
     $blockingStatuses += @("SKIP", "MANUAL")
+}
+if ($RequireComplete -and $Results.Count -eq 0) {
+    throw "-RequireComplete requires at least one requested acceptance gate"
 }
 $blocking = @($Results | Where-Object { $blockingStatuses -contains $_.Status })
 if ($blocking.Count -gt 0) {

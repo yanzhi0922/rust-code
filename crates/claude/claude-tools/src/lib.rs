@@ -1641,13 +1641,12 @@ pub async fn execute_tool_call(
     let filesystem_rule_relevant = filesystem_operation_for_tool(&spec.name).is_some()
         && path_input_for_filesystem_tool(&spec.name, &effective_call.input).is_some();
 
-    if filesystem_precheck
+    if let Some(precheck) = filesystem_precheck
         .as_ref()
-        .is_some_and(|precheck| !precheck.requires_confirmation)
+        .filter(|precheck| !precheck.requires_confirmation)
     {
-        let precheck = filesystem_precheck.expect("precheck checked");
         return Ok(ToolResult {
-            content: precheck.message,
+            content: precheck.message.clone(),
             is_error: true,
             content_blocks: Vec::new(),
             follow_up_user_blocks: Vec::new(),

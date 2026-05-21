@@ -68,8 +68,17 @@ pub use types::{
 #[cfg(test)]
 mod tests {
     use super::*;
+    use codex_app_server_protocol::{RequestPermissionProfile, ToolRequestUserInputQuestion};
     use rc_agent_protocol::permission::PermissionDecision;
-    use serde_json::json;
+    use serde_json::{Value, json};
+
+    fn permissions(value: Value) -> RequestPermissionProfile {
+        serde_json::from_value(value).expect("test permission profile should deserialize")
+    }
+
+    fn tool_questions(value: Value) -> Vec<ToolRequestUserInputQuestion> {
+        serde_json::from_value(value).expect("test tool questions should deserialize")
+    }
 
     fn response_json(
         kind: types::PendingServerRequestKind,
@@ -120,10 +129,10 @@ mod tests {
     #[test]
     fn hard_deny_returns_none_for_untyped_or_unavailable_response_kinds() {
         for kind in [
-            types::PendingServerRequestKind::Permissions(json!({
+            types::PendingServerRequestKind::Permissions(permissions(json!({
                 "network": { "enabled": true }
-            })),
-            types::PendingServerRequestKind::ToolUserInput(json!([])),
+            }))),
+            types::PendingServerRequestKind::ToolUserInput(Vec::new()),
             types::PendingServerRequestKind::DynamicTool {
                 call_id: "test".to_string(),
                 namespace: None,
@@ -148,13 +157,13 @@ mod tests {
 
     #[test]
     fn permissions_grant_preserves_requested_network_and_file_system() {
-        let requested = json!({
+        let requested = permissions(json!({
             "network": { "enabled": true },
             "fileSystem": {
                 "read": ["C:\\repo"],
                 "write": ["C:\\repo\\out"]
             }
-        });
+        }));
 
         let response = response_json(
             types::PendingServerRequestKind::Permissions(requested),
@@ -179,9 +188,9 @@ mod tests {
     #[test]
     fn permissions_allow_all_uses_session_scope() {
         let response = response_json(
-            types::PendingServerRequestKind::Permissions(json!({
+            types::PendingServerRequestKind::Permissions(permissions(json!({
                 "network": { "enabled": true }
-            })),
+            }))),
             PermissionDecision::AllowAll,
             CodexServerRequestResolution::default(),
         );
@@ -192,7 +201,7 @@ mod tests {
     #[test]
     fn tool_user_input_defaults_to_first_option_label() {
         let response = response_json(
-            types::PendingServerRequestKind::ToolUserInput(json!([
+            types::PendingServerRequestKind::ToolUserInput(tool_questions(json!([
                 {
                     "id": "approval_mode",
                     "header": "Mode",
@@ -202,7 +211,7 @@ mod tests {
                         { "label": "Fast", "description": "Proceed" }
                     ]
                 }
-            ])),
+            ]))),
             PermissionDecision::Allow,
             CodexServerRequestResolution::default(),
         );
