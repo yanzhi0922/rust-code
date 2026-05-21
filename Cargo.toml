@@ -319,7 +319,7 @@ eventsource-stream = "0.2.3"
 image = { version = "0.25", default-features = false, features = ["png"] }
 mime_guess = "2.0.5"
 opentelemetry = "0.31.0"
-opentelemetry_sdk = "0.31.0"
+opentelemetry_sdk = "0.32.0"
 rustls-native-certs = "0.8.3"
 rustls-pki-types = "1.14.0"
 rustls-pemfile = "2"
