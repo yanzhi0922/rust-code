@@ -327,7 +327,7 @@ tracing-opentelemetry = "0.32.0"
 zstd = "0.13"
 flate2 = "1.1.8"
 rcgen = { version = "0.14.7", default-features = false, features = ["aws_lc_rs", "pem"] }
-tar = { version = "=0.4.45", default-features = false }
+tar = { version = "=0.4.46", default-features = false }
 deno_core_icudata = "0.77.0"
 syntect = "5"
 allocative = "0.3.3"
