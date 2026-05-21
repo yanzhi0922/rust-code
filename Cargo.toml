@@ -358,7 +358,7 @@ aws-credential-types = "1"
 aws-sigv4 = "1"
 aws-types = "1"
 bytes = "1"
-ctor = "0.6"
+ctor = "0.8"
 crossbeam-channel = "0.5"
 derive_more = { version = "2", features = ["is_variant"] }
 dirs = "6"
