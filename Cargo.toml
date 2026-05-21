@@ -336,7 +336,7 @@ rmcp = { version = "1.6.0", default-features = false }
 similar = "2.7.0"
 urlencoding = "2.1"
 maplit = "1.0.2"
-opentelemetry-appender-tracing = "0.31.0"
+opentelemetry-appender-tracing = "0.32.0"
 opentelemetry-otlp = "0.31.0"
 opentelemetry-semantic-conventions = "0.31.0"
 serde_path_to_error = "0.1.20"
