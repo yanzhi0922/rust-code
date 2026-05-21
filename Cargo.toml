@@ -577,7 +577,7 @@ mcp_test_support = { path = "crates/codex/mcp-server/tests/common" }
 	# ── Roo-specific external deps ──────────────────────────────────
 	fluent = "0.16"
 	fluent-bundle = "0.15"
-	git2 = { version = "0.20", default-features = false }
+	git2 = { version = "0.21", default-features = false }
 	gray_matter = "0.2"
 	instant-distance = "0.2"
 	jsonrpsee = { version = "0.24", features = ["server", "client", "macros"] }
