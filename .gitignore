@@ -1,0 +1,66 @@
+/target
+**/target/
+/.tmp/
+/.cargo/*
+!/.cargo/audit.toml
+/.idea
+/.vscode
+*.log
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+.DS_Store
+Thumbs.db
+fixtures/out/
+
+__pycache__/
+*.pyc
+*.swp
+*.swo
+*.orig
+.env
+.env.*
+.envrc
+.mcp.json
+*.local.json
+*.local.toml
+*.secret
+*.token
+*.key
+*.p12
+*.pfx
+*.pdb
+nul
+.ruff_cache/
+
+# Temporary build artifacts and warning lists
+C*persistent*
+C*pedantic*
+C*clippy*
+C*warnings*
+C*app-warnings*
+remaining-warnings.txt
+fix_pedantic.py
+key_for_test.txt
+
+# Node.js (GUI sub-project)
+node_modules/
+.playwright-cli/
+.research/
+output/
+.release-evidence/
+
+# Claude Code session files
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks.json
+.runner-profile/
+/.kiro/
+
+# One-off scripts with credentials
+gh-push-db.js
+runner-local.env
+
+# Agent source — exclude vendored git internals only
+agents/codex/.git/

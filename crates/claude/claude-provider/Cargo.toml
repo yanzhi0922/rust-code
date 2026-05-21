@@ -1,0 +1,38 @@
+[package]
+name = "claude-provider"
+description = "LLM provider client with retry logic and message formatting"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+parking_lot.workspace = true
+async-trait.workspace = true
+base64.workspace = true
+chrono.workspace = true
+futures.workspace = true
+hmac.workspace = true
+image = { workspace = true }
+rand.workspace = true
+regex.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+claude-config = { path = "../claude-config" }
+claude-context = { path = "../claude-context" }
+claude-core = { path = "../claude-core" }
+claude-tools = { path = "../claude-tools" }
+
+[dev-dependencies]
+axum.workspace = true

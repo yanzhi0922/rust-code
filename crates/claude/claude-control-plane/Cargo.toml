@@ -1,0 +1,42 @@
+[package]
+name = "claude-control-plane"
+description = "Control plane service for orchestrating remote runners and sessions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+axum.workspace = true
+base64.workspace = true
+chrono.workspace = true
+constant_time_eq.workspace = true
+futures.workspace = true
+reqwest.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tokio.workspace = true
+tower-http.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+quinn = "0.11"
+rustls = { workspace = true }
+rustls-pemfile = { workspace = true }
+claude-config = { path = "../claude-config" }
+rc-engine-events = { path = "../../shared/rc-engine-events" }
+claude-runner = { path = "../claude-runner" }
+rc-remote-transport = { path = "../../shared/rc-remote-transport", features = ["quic"] }
+
+[dev-dependencies]
+rcgen = { version = "0.14.7", default-features = false, features = ["ring", "pem"] }
+tempfile.workspace = true
+tokio-tungstenite.workspace = true
+tower = "0.5.2"

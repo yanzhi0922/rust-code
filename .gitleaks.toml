@@ -1,0 +1,127 @@
+title = "Remote Code Rust gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Repository-local false positives: lockfiles and generated dependency metadata."
+paths = [
+  '''(^|[\\/])Cargo\.lock$''',
+  '''(^|[\\/])crates[\\/]codex[\\/]Cargo\.lock$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]Cargo\.lock$''',
+]
+
+[[allowlists]]
+description = "Known inert historical fixture files and generated protocol examples."
+paths = [
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]app-server[\\/]src[\\/]in_process\.rs$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]app-server[\\/]src[\\/]message_processor[\\/]tracing_tests\.rs$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]app-server[\\/]tests[\\/]suite[\\/]v2[\\/]connection_handling_websocket\.rs$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]app-server[\\/]tests[\\/]suite[\\/]v2[\\/]device_key\.rs$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]app-server-protocol[\\/]src[\\/]protocol[\\/]v2\.rs$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]cli[\\/]src[\\/]login\.rs$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]cloud-requirements[\\/]src[\\/]lib\.rs$''',
+  '''(^|[\\/])agents[\\/]roo-code[\\/]crates[\\/]roo-provider[\\/]src[\\/]vertex_auth\.rs$''',
+  '''(^|[\\/])crates[\\/]codex[\\/]app-server[\\/]src[\\/]in_process\.rs$''',
+  '''(^|[\\/])crates[\\/]codex[\\/]app-server[\\/]src[\\/]message_processor[\\/]tracing_tests\.rs$''',
+  '''(^|[\\/])crates[\\/]codex[\\/]app-server[\\/]tests[\\/]suite[\\/]v2[\\/]connection_handling_websocket\.rs$''',
+  '''(^|[\\/])crates[\\/]codex[\\/]app-server[\\/]tests[\\/]suite[\\/]v2[\\/]device_key\.rs$''',
+  '''(^|[\\/])crates[\\/]codex[\\/]app-server-protocol[\\/]src[\\/]protocol[\\/]v2\.rs$''',
+  '''(^|[\\/])crates[\\/]codex[\\/]cli[\\/]src[\\/]login\.rs$''',
+  '''(^|[\\/])crates[\\/]codex[\\/]cloud-requirements[\\/]src[\\/]lib\.rs$''',
+  '''(^|[\\/])crates[\\/]rc-team-memory[\\/]src[\\/]secret_scanner\.rs$''',
+  '''(^|[\\/])crates[\\/]roo[\\/]roo-provider[\\/]src[\\/]vertex_auth\.rs$''',
+  '''(^|[\\/])plans[\\/]claude-code-rust-full-clone-plan\.md$''',
+]
+
+[[allowlists]]
+description = "SHA-256 empty payload fixture used by generated protocol examples."
+regexes = [
+  '''47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU''',
+]
+
+[[allowlists]]
+description = "Inert Codex test identity material used by unit tests."
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''(^|[\\/])crates[\\/]codex[\\/]agent-identity[\\/]src[\\/]lib\.rs$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]agent-identity[\\/]src[\\/]lib\.rs$''',
+  '''(^|[\\/])crates[\\/]codex[\\/]login[\\/]src[\\/]auth[\\/]auth_tests\.rs$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]login[\\/]src[\\/]auth[\\/]auth_tests\.rs$''',
+]
+regexes = [
+  '''47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU''',
+  '''-----BEGIN (RSA |OPENSSH |EC |DSA |)?PRIVATE KEY-----''',
+]
+
+[[allowlists]]
+description = "Inert CLI key-formatting examples."
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''(^|[\\/])crates[\\/]codex[\\/]cli[\\/]src[\\/]login\.rs$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]cli[\\/]src[\\/]login\.rs$''',
+]
+regexes = [
+  '''let key = "(example-1234567890ABCDE|sample-12345)"''',
+]
+
+[[allowlists]]
+description = "Inert websocket signing fixture."
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''(^|[\\/])crates[\\/]codex[\\/]app-server[\\/]tests[\\/]suite[\\/]v2[\\/]connection_handling_websocket\.rs$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]app-server[\\/]tests[\\/]suite[\\/]v2[\\/]connection_handling_websocket\.rs$''',
+]
+regexes = [
+  '''shared_secret\s*=\s*"test-signing-secret(-32-bytes-long)?"''',
+]
+
+[[allowlists]]
+description = "Inert cloud-requirements private-key fixture."
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''(^|[\\/])crates[\\/]codex[\\/]cloud-requirements[\\/]src[\\/]lib\.rs$''',
+  '''(^|[\\/])agents[\\/]codex[\\/]codex-rs[\\/]cloud-requirements[\\/]src[\\/]lib\.rs$''',
+]
+regexes = [
+  '''agent_private_key:\s*("test-agent-private-key"|key_material\.private_key_pkcs8_base64)''',
+]
+
+[[allowlists]]
+description = "Inert Roo Vertex auth parser fixtures."
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''(^|[\\/])crates[\\/]roo[\\/]roo-provider[\\/]src[\\/]vertex_auth\.rs$''',
+  '''(^|[\\/])agents[\\/]roo-code[\\/]crates[\\/]roo-provider[\\/]src[\\/]vertex_auth\.rs$''',
+]
+regexes = [
+  '''-----BEGIN (RSA |OPENSSH |EC |DSA |)?PRIVATE KEY-----''',
+  '''"private_key":\s*"(test-private-key-data|some-key|some-key-data|<PEM_PRIVATE_KEY>)"''',
+]
+
+[[allowlists]]
+description = "Archived planning examples with intentionally fake provider-key placeholders."
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''(^|[\\/])plans[\\/]claude-code-rust-full-clone-plan\.md$''',
+]
+regexes = [
+  '''(?i)(ANTHROPIC_API_KEY|MINIMAX_API_KEY|api_key)\s*=?\s*"?sk-[A-Za-z0-9._-]+''',
+]
+
+[[allowlists]]
+description = "Historical scanner self-test fixture."
+condition = "AND"
+regexTarget = "line"
+paths = [
+  '''(^|[\\/])crates[\\/]rc-team-memory[\\/]src[\\/]secret_scanner\.rs$''',
+]
+regexes = [
+  '''(?i)(api[_-]?key|secret|token)''',
+]

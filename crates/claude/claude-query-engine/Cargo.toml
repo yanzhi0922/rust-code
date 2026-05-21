@@ -1,0 +1,33 @@
+[package]
+name = "claude-query-engine"
+description = "Query engine v2 scaffolding and compat loop for remote-code-rust"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+parking_lot.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+filetime = "0.2"
+uuid.workspace = true
+claude-core = { path = "../claude-core" }
+claude-context = { path = "../claude-context" }
+rc-engine-events = { path = "../../shared/rc-engine-events" }
+claude-provider = { path = "../claude-provider" }
+
+[dev-dependencies]
+tempfile.workspace = true
+filetime = "0.2"

@@ -1,0 +1,20 @@
+[package]
+name = "claude-system-prompt"
+description = "Dynamic system prompt builder matching Claude Code's constants/prompts.ts"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+claude-core = { path = "../claude-core" }
+anyhow.workspace = true
+once_cell.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true

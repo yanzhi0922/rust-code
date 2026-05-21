@@ -1,0 +1,131 @@
+[workspace]
+members = [
+    "agents/claudecode",
+    "crates/claude/claude-agents",
+    "crates/claude/claude-auth",
+    "crates/claude/claude-compact",
+    "crates/claude/claude-config",
+    "crates/claude/claude-context",
+    "crates/claude/claude-control-plane",
+    "crates/claude/claude-core",
+    "crates/claude/claude-mcp",
+    "crates/claude/claude-model",
+    "crates/claude/claude-permissions",
+    "crates/claude/claude-plugins",
+    "crates/claude/claude-protocol",
+    "crates/claude/claude-provider",
+    "crates/claude/claude-query-engine",
+    "crates/claude/claude-runner",
+    "crates/claude/claude-runtime-prompt",
+    "crates/claude/claude-session",
+    "crates/claude/claude-skills",
+    "crates/claude/claude-swarm",
+    "crates/claude/claude-system-prompt",
+    "crates/claude/claude-telemetry",
+    "crates/claude/claude-tools",
+    "crates/claude/claude-transcript",
+    "crates/claude/claude-tui",
+    "crates/claude/claude-ui-bridge",
+    "crates/claude/claude-utils",
+    "crates/shared/rc-agent-protocol",
+    "crates/shared/rc-engine-events",
+    "crates/shared/rc-remote-transport",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+license = "Proprietary"
+authors = ["Yanzh"]
+repository = "https://github.com/yanzhi0922/rust-code"
+rust-version = "1.93"
+
+[workspace.dependencies]
+anyhow = "1"
+async-trait = "0.1.89"
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "macros", "query", "tokio", "ws"] }
+base64 = "0.22.1"
+chrono = { version = "0.4", features = ["clock", "serde"] }
+clap = { version = "4", features = ["derive", "env"] }
+constant_time_eq = "0.4.2"
+crossterm = "0.28.1"
+directories = "6.0.0"
+futures = { version = "0.3", default-features = false }
+getrandom = "0.3"
+globset = "0.4"
+hmac = "0.12"
+ignore = "0.4"
+image = { version = "0.25", default-features = false, features = ["png"] }
+indexmap = { version = "2.12.0", features = ["serde"] }
+once_cell = "1"
+parking_lot = "0.12"
+rand = "0.9"
+ratatui = "0.29.0"
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream", "http2", "cookies"] }
+rusqlite = { version = "0.32.0", features = ["bundled", "chrono", "serde_json"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+rustls-native-certs = "0.8.3"
+rustls-pemfile = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serial_test = "3"
+sha2 = "0.10"
+tempfile = "3"
+thiserror = "2"
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.28.0", features = ["proxy", "rustls-tls-native-roots"] }
+tokio-util = "0.7"
+toml = "1.1"
+tower-http = { version = "0.6", features = ["cors"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+url = "2"
+urlencoding = "2.1"
+uuid = { version = "1", features = ["serde", "v4", "v5", "v7"] }
+walkdir = "2.5.0"
+
+[patch.crates-io]
+tungstenite = { git = "https://github.com/openai-oss-forks/tungstenite-rs", rev = "9200079d3b54a1ff51072e24d81fd354f085156f" }
+tokio-tungstenite = { git = "https://github.com/openai-oss-forks/tokio-tungstenite", rev = "132f5b39c862e3a970f731d709608b3e6276d5f6" }
+crossterm = { git = "https://github.com/nornagon/crossterm", rev = "87db8bfa6dc99427fd3b071681b07fc31c6ce995" }
+ratatui = { git = "https://github.com/nornagon/ratatui", rev = "9b2ad1298408c45918ee9f8241a6f95498cdbed2" }
+
+[workspace.lints.rust]
+unsafe_code = "allow"
+
+[workspace.lints.clippy]
+absurd_extreme_comparisons = "allow"
+collapsible_if = "allow"
+dbg_macro = "deny"
+derivable_impls = "allow"
+filter_next = "allow"
+if_same_then_else = "allow"
+inconsistent_digit_grouping = "allow"
+items_after_test_module = "allow"
+manual_clamp = "allow"
+manual_find = "allow"
+manual_strip = "allow"
+match_like_matches_macro = "allow"
+needless_range_loop = "allow"
+nonminimal_bool = "allow"
+only_used_in_recursion = "allow"
+ptr_arg = "allow"
+redundant_closure = "allow"
+todo = "deny"
+too_many_arguments = "allow"
+type_complexity = "allow"
+unnecessary_filter_map = "allow"
+unnecessary_map_or = "allow"
+unnecessary_to_owned = "allow"
+unwrap_used = "allow"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[profile.test]
+debug = 0
+incremental = false
+

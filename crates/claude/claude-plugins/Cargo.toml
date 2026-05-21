@@ -1,0 +1,34 @@
+[package]
+name = "claude-plugins"
+description = "Plugin system with JSON-RPC runtime and skill discovery"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+directories.workspace = true
+flate2 = "1"
+once_cell.workspace = true
+claude-mcp = { path = "../claude-mcp" }
+claude-skills = { path = "../claude-skills" }
+regex.workspace = true
+reqwest = { workspace = true, features = ["blocking"] }
+serde.workspace = true
+serde_json.workspace = true
+tar = "0.4"
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+walkdir.workspace = true
+zip = { version = "8", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+tempfile.workspace = true

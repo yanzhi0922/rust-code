@@ -1,0 +1,49 @@
+[advisories]
+# Accepted 2026-05-17 by release engineering; review by 2026-06-30.
+#
+# Blocking vulnerabilities:
+# - RUSTSEC-2026-0118 / RUSTSEC-2026-0119: hickory-proto 0.25.2 is pulled
+#   through rama 0.3.0-alpha.4 in codex-network-proxy. No fixed 0.25.x release
+#   exists; revisit when rama upgrades to hickory 0.26 or a patched branch.
+# - RUSTSEC-2023-0071: rsa 0.9.10 is pulled through sqlx-mysql in sqlx's macro
+#   dependency graph. The application configures SQLite-only sqlx features;
+#   remove this ignore when sqlx no longer resolves sqlx-mysql/rsa into the
+#   workspace lockfile.
+#
+# Non-blocking warning accepts:
+# - GTK/WebKit/ATK stack advisories are transitive through Tauri/Wry Linux GUI
+#   dependencies. The primary supported desktop release is Windows; Linux GUI
+#   publishing must refresh these before general availability.
+# - ratatui/paste/syntect/urlpattern/lru/rustls-pemfile accepts are tracked so
+#   cargo audit remains quiet in CI while dependency owners ship fixed versions.
+#   Do not add new entries without a short risk note and review date.
+ignore = [
+    "RUSTSEC-2023-0071",
+    "RUSTSEC-2024-0320",
+    "RUSTSEC-2024-0370",
+    "RUSTSEC-2024-0384",
+    "RUSTSEC-2024-0388",
+    "RUSTSEC-2024-0411",
+    "RUSTSEC-2024-0412",
+    "RUSTSEC-2024-0413",
+    "RUSTSEC-2024-0414",
+    "RUSTSEC-2024-0415",
+    "RUSTSEC-2024-0416",
+    "RUSTSEC-2024-0417",
+    "RUSTSEC-2024-0418",
+    "RUSTSEC-2024-0419",
+    "RUSTSEC-2024-0420",
+    "RUSTSEC-2024-0429",
+    "RUSTSEC-2024-0436",
+    "RUSTSEC-2025-0057",
+    "RUSTSEC-2025-0075",
+    "RUSTSEC-2025-0080",
+    "RUSTSEC-2025-0081",
+    "RUSTSEC-2025-0098",
+    "RUSTSEC-2025-0100",
+    "RUSTSEC-2025-0134",
+    "RUSTSEC-2025-0141",
+    "RUSTSEC-2026-0002",
+    "RUSTSEC-2026-0118",
+    "RUSTSEC-2026-0119",
+]

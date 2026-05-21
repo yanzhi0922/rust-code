@@ -1,0 +1,43 @@
+[package]
+name = "claude-tui"
+description = "Interactive TUI with Vim-like keybindings powered by ratatui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+parking_lot.workspace = true
+crossterm.workspace = true
+directories.workspace = true
+ratatui.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+uuid.workspace = true
+unicode-width = "0.2"
+claude-core = { path = "../claude-core" }
+claude-config = { path = "../claude-config" }
+claude-session = { path = "../claude-session" }
+claude-provider = { path = "../claude-provider" }
+claude-runtime-prompt = { path = "../claude-runtime-prompt" }
+claude-tools = { path = "../claude-tools" }
+claude-permissions = { path = "../claude-permissions" }
+claude-mcp = { path = "../claude-mcp" }
+claude-plugins = { path = "../claude-plugins" }
+claude-skills = { path = "../claude-skills" }
+claude-agents = { path = "../claude-agents" }
+claude-model = { path = "../claude-model" }
+claude-system-prompt = { path = "../claude-system-prompt" }
+claude-utils = { path = "../claude-utils" }
+chrono.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

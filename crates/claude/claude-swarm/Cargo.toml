@@ -1,0 +1,27 @@
+[package]
+name = "claude-swarm"
+description = "Swarm/Team multi-agent collaboration system with backend abstraction"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+claude-core = { path = "../claude-core" }
+claude-agents = { path = "../claude-agents" }
+async-trait = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["fs", "process", "sync", "time", "rt", "macros"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+chrono = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

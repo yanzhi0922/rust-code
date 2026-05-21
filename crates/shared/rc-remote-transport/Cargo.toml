@@ -1,0 +1,40 @@
+[package]
+name = "rc-remote-transport"
+description = "Multi-strategy remote transport layer for mobile-to-runner connections"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[features]
+default = ["websocket", "polling", "hybrid"]
+websocket = ["dep:tokio-tungstenite"]
+polling = []
+hybrid = ["websocket", "polling"]
+quic = ["dep:quinn"]
+e2e = ["dep:x25519-dalek", "dep:aes-gcm"]
+
+[dependencies]
+tokio = { workspace = true, features = ["full"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
+chrono = { workspace = true, features = ["serde"] }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+futures = { workspace = true }
+sha2 = { workspace = true }
+rustls = { workspace = true, features = ["ring", "std"] }
+rustls-native-certs = { workspace = true }
+reqwest = { workspace = true }
+tokio-tungstenite = { workspace = true, optional = true }
+quinn = { version = "0.11", optional = true }
+x25519-dalek = { version = "2", features = ["static_secrets"], optional = true }
+aes-gcm = { version = "0.10", optional = true }
+
+[lints]
+workspace = true

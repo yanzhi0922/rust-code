@@ -1,0 +1,7 @@
+Copyright (c) 2026 rust-code contributors.
+
+All rights reserved.
+
+This repository is published for source visibility, security review, issue tracking, and collaboration. No permission is granted to copy, modify, distribute, sublicense, sell, host, or provide the software as a service unless you have a separate written license from the copyright holder.
+
+Third-party components included under `agents/`, `crates/`, and dependency lockfiles remain governed by their own licenses and notices.
